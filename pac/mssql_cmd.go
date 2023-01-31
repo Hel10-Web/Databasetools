@@ -12,12 +12,6 @@ import (
 // 执行sql命令行
 func MssqlCMD(sqlstr string, conn *sql.DB) []interface{} {
 
-	// var err error
-	timeout := 10 * time.Second
-	if _, err := WrapperTcpWithTimeout("tcp", Socks5Proxy, timeout); err != nil {
-		Err(err)
-	}
-
 	stmt, err := conn.Prepare(sqlstr)
 	if err != nil {
 		Err(err)

