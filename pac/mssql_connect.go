@@ -17,11 +17,13 @@ func MssqlConnect(Rhost string, Rport string, Ruser string, pwd string) (err err
 
 	conn, err := sql.Open("mssql", connString)
 	if err != nil {
+		Err(err)
 		return nil, nil, false
 	}
 
 	err = conn.Ping()
 	if err != nil {
+		Err(err)
 		return nil, nil, false
 	}
 	sign = true

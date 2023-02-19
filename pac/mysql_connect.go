@@ -9,13 +9,16 @@ import (
 )
 
 func MysqlConnect(Ruser string, Rhost string, PWD string, Rport string) (err error, conn *sql.DB, sign bool) {
+	Info("账号密码正确但无法连接可能是因为目标没有开启远程连接")
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/information_schema?charset=gbk&parseTime=True", Ruser, PWD, Rhost, Rport)
 	conn, err = sql.Open("mysql", dsn)
 	if err != nil {
+		Err(err)
 		return nil, nil, false
 	}
 	err = conn.Ping()
 	if err != nil {
+		Err(err)
 		return nil, nil, false
 	}
 	fmt.Println("连接数据库成功！")

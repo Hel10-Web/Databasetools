@@ -11,14 +11,17 @@ import (
 func OracleConnect(ruser string, pwd string, rhost string, rport string, sid string) (conn *sql.DB, err error, sign bool) {
 	conn, err = sql.Open("godror", fmt.Sprintf(`user=%s password="%s" connectString="%s:%s/%s"`, ruser, pwd, rhost, rport, sid))
 	if err != nil {
+		Err(err)
 		return nil, nil, false
 	}
 	err = conn.Ping()
 	if err != nil {
+		Err(err)
 		return nil, nil, false
 	}
 	Info("Oracle数据库连接成功")
 	if err != nil {
+		Err(err)
 		return nil, nil, false
 	}
 	sign = true

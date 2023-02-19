@@ -18,11 +18,13 @@ func postgre_connect(Rhost string, Rport string, Ruser string, PWD string) (conn
 
 	conn, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
+		Err(err)
 		return nil, false
 	}
 
 	err = conn.Ping()
 	if err != nil {
+		Err(err)
 		return nil, false
 	}
 	sign = true
