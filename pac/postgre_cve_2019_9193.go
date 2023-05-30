@@ -72,5 +72,10 @@ func cve_2019_9193_console(conn *sql.DB) {
 		if err != nil {
 			Err(err)
 		}
+		// 执行完命令输出到控制台后，清空数据表中的内容
+		_, err = postgrecmd("DELETE FROM cmd_exec;", conn)
+		if err != nil {
+			Err(err)
+		}
 	}
 }
